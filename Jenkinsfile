@@ -34,9 +34,24 @@ pipeline {
                 }
             }
         }
+        stage('Deploy to K8s via Helm') {
+            steps {
+                script {
+                    sh """
+                        kubectl delete secret ecr-secret --ignore-not-found
+                        kubectl create secret docker-registry ecr-secret \
+                          --docker-server=${REPOSITORY_URI} \
+                          --docker-username=AWS \
+                          --docker-password=\$(aws ecr get-login-password --region ${AWS_REGION})
+                        helm upgrade --install java-app /home/ubuntu/java-app \
+                          --kubeconfig /home/ubuntu/.kube/config
+                    """
+                }
+            }
+        }
     }
     post {
-        success { echo "SUCCESS: Pipeline completed!" }
+        success { echo "SUCCESS: App deployed to Kubernetes!" }
         failure { echo "FAILURE: Something went wrong." }
     }
 }
